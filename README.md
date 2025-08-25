@@ -172,4 +172,4 @@ pnpm prisma db seed
 pnpm dev
 
 # Ejecutar tests con coverage
-pnpm run test -- --coverage
+pnpm run test:all
