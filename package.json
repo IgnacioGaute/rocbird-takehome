@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "test": "jest --watch",
     "db:push": "prisma db push",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "test:all": "jest --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
