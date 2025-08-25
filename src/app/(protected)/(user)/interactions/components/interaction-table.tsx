@@ -26,10 +26,13 @@ import { Input } from '@/components/ui/input';
 import { DataTableViewOptions } from '@/components/ui/data-table-view-options';
 import { Talento } from '@/types/talent.type';
 import { CreateInteractionDialog } from './create-interaction-dialog';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare, Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
 
 interface DataTableProps<TData, TValue> {
-  columns: (talentos: Talento[]) =>  ColumnDef<TData, TValue>[];
+  columns: (talentos: Talento[]) => ColumnDef<TData, TValue>[];
   data: TData[];
   talentos: Talento[];
 }
@@ -41,6 +44,7 @@ export function InteraccionTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [date, setDate] = useState<Date | undefined>(undefined);
 
   const table = useReactTable({
     data,
@@ -64,10 +68,10 @@ export function InteraccionTable<TData, TValue>({
 
   return (
     <div className="space-y-6">
-      {/* Table Header with Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1 max-w-md">
-          <div className="relative">
+        
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-1">
+          <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-300" />
             <Input
               placeholder="Buscar por tipo de interacción..."
@@ -78,8 +82,33 @@ export function InteraccionTable<TData, TValue>({
               className="pl-10 h-11 bg-slate-800/90 border-slate-600 text-white placeholder:text-slate-300 focus:border-green-400 focus:ring-green-400/20 rounded-xl transition-all duration-200"
             />
           </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-11 w-[200px] justify-start text-left font-normal bg-slate-800/90 border-slate-600 text-white"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? date.toLocaleDateString("es-AR") : "Filtrar por fecha"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-slate-900 border-slate-700">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(selectedDate) => {
+                  setDate(selectedDate);
+                  table.getColumn("fecha")?.setFilterValue(
+                    selectedDate ? selectedDate.toISOString().split("T")[0] : ""
+                  );
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <CreateInteractionDialog talentos={talentos}/>
           <div className="relative">
@@ -88,7 +117,6 @@ export function InteraccionTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Table Container */}
       <div className="bg-slate-900/95 rounded-xl border border-slate-700/60 overflow-hidden shadow-2xl backdrop-blur-sm">
         <div className="overflow-x-auto">
           <Table>
@@ -155,7 +183,6 @@ export function InteraccionTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Pagination */}
       <div className="bg-slate-800/90 rounded-xl border border-slate-700/60 p-4 shadow-lg">
         <DataTablePagination table={table} />
       </div>
