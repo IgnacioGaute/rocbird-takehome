@@ -26,6 +26,7 @@ export default async function TalentoPage() {
                 </h1>
                 <p className="text-slate-400 text-lg">
                   Administra y supervisa el talento de tu organización
+                  (coloca el cursor sobre el nombre y apellido del talento para ver sus interacciones)
                 </p>
               </div>
             </div>
