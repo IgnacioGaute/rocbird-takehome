@@ -1,98 +1,175 @@
-# Rocbird takehome Fullstack/Heavy backend dev
+# CRUD de Talentos - Proyecto Next.js + Prisma + PostgreSQL
 
-Este proyecto base es un starter kit enfocadao a una herramienta interna para control de staffing de talentos para que puedas demostrar tus habilidades técnicas como fullstack orientado fuertemente a backend con tecnologías modernas.  
-Aquí tendrás que implementar y extender funcionalidades usando **Next.js v15**, **TypeScript**, **Prisma ORM** y una UI base con **shadcn** y **TailwindCSS**.
+Este proyecto implementa un CRUD completo para gestionar talentos, referentes técnicos e interacciones. La aplicación incluye backend con API usando **Next.js App Router** y frontend con UI reutilizable (shadcn/ui).  
 
-El objetivo principal es evaluar la capacidad del postulante para:  
-- Diseñar **APIs limpias** y seguras.  
-- Manejar base de datos con Prisma ORM aplicando buenas prácticas.  
-- Crear interfaces eficientes, escalables, fuertemente tipadas y correctamente estructuradas.  
-
-El tiempo para resolver este takehome será de **7 días** desde el día en el que se comparta el repo para ser clonado.
+Además, incorpora autenticación básica (registro/login) y un seed inicial para poblar la base de datos.  
 
 ---
 
-## Puntos a resolver
+## Contenido
 
-1. **CRUD completo de talentos**  
-   - Implementar las operaciones Create, Read, Update y Delete para el modelo `Talento` usando Prisma y exponerlos a través de rutas API de Next.js (App Router).  
-   - La UI deberá permitir listar, crear, editar y eliminar talentos.  
-   - Usar rutas dinámicas (`app/talentos/[id]`) y soportar query params para filtrado y paginación (`/talentos?page=2&sort=asc`).
-
-2. **Validación y manejo de errores**  
-   - Validar tanto en backend como en frontend asegurando tipado estricto entre ambos.  
-   - Validar campos requeridos, formatos y devolver códigos HTTP correctos.  
-   - Mostrar mensajes claros y amigables para el usuario en la UI (toast, alert).
-
-3. **Consumo eficiente de la base de datos**  
-   - Usar `select` / `include` para traer solo datos necesarios.  
-   - Evitar N+1 queries con relaciones bien definidas.  
-   - Manejar transacciones con `prisma.$transaction` para operaciones múltiples.
-
-4. **Uso de componentes UI reutilizables**  
-   - Usar componentes de `shadcn/ui` para formularios, tablas, modales y toasts.  
-   - Seguir un patrón consistente de estilos y estructura.  
-   - Construir componentes genéricos reutilizables que puedan adaptarse a distintos casos.
-
-5. **Configuración y documentación clara**  
-   - Proyecto listo para clonar y correr con instrucciones claras.  
-   - Scripts útiles (`db:push`, `db:seed`, `lint`, `format`).  
-   - `.env.example` documentado.
-
-6. **Modelado y seed de base de datos**  
-   - Levantar una base de datos **PostgreSQL local**.  
-   - Conectarla al backend mediante Prisma.  
-   - Crear un **seed inicial** que incluya las siguientes tablas y relaciones:
-     - **talento**: Representa a una persona parte del staff.(nombre_y_apellido, seniority, rol, estado ("activo" o "inactivo"), )
-     - **referente_tecnico**: Puede actuar como **líder** y/o **mentor** de uno o varios talentos.  
-       - Un talento puede tener **líder** y/o **mentor** (pueden ser la misma persona o distintas).  
-       - Un referente técnico puede tener múltiples talentos a cargo (determinar correctamente relaciones uno a muchos, muchos a muchos, etc).  
-     - **interaccion**: Registro de interacciones de un talento, generar los tipos correctos para cada columna del schema (tipo_de_interaccion, fecha, detalle, estado, fecha_de_modificacion) y vincularlas correctamente al talento.  
-       - Un talento puede tener múltiples interacciones.
-       - El estado de la intearccion puede actualizarse desde el front ("Iniciada", "En Progreso", "Finalizada")
-       - Documentar el esquema y sus relaciones en el README o en `prisma/schema.prisma`.  
+- [Modelo de datos](#modelo-de-datos)  
+- [Autenticación](#autenticación)  
+- [Rutas API](#rutas-api)  
+- [Frontend](#frontend)  
+- [Base de datos y Seed](#base-de-datos-y-seed)  
+- [Instalación y ejecución](#instalación-y-ejecución)  
+- [Tests](#tests)  
 
 ---
 
-## Puntos extra (opcionales):
+## Modelo de datos
 
-- Utilizar Docker.  
-- Testing unitario de funcionalidades críticas.  
+### User
+
+- `id`: String (PK, cuid)  
+- `email`: String (único)  
+- `firstName`: String  
+- `lastName`: String  
+- `password`: String (hash)  
+- `createdAt`: DateTime  
+- `updatedAt`: DateTime  
+
+### Talento
+
+- `id`: Int (PK, autoincrement)  
+- `nombre_y_apellido`: String  
+- `seniority`: Enum (JUNIOR, SEMI_SENIOR, SENIOR)  
+- `rol`: String  
+- `estado`: Enum (ACTIVO, INACTIVO)  
+- `referenteLiderId`: Int? (FK hacia `ReferenteTecnico`)  
+- `referenteMentorId`: Int? (FK hacia `ReferenteTecnico`)  
+- Relaciones:  
+  - `referenteLider`: ReferenteTecnico (1)  
+  - `referenteMentor`: ReferenteTecnico (1)  
+  - `interacciones`: Interaccion[] (1 a muchos)  
+- `createdAt`: DateTime  
+- `updatedAt`: DateTime  
+
+### ReferenteTecnico
+
+- `id`: Int (PK, autoincrement)  
+- `nombre_y_apellido`: String  
+- Relaciones:  
+  - `liderTalentos`: Talento[] (uno a muchos)  
+  - `mentorTalentos`: Talento[] (uno a muchos)  
+- `createdAt`: DateTime  
+- `updatedAt`: DateTime  
+
+### Interaccion
+
+- `id`: Int (PK, autoincrement)  
+- `talentoId`: Int (FK hacia Talento)  
+- `tipo_de_interaccion`: String  
+- `detalle`: String  
+- `estado`: Enum (INICIADA, EN_PROGRESO, FINALIZADA)  
+- `fecha`: DateTime  
+- `fecha_de_modificacion`: DateTime  
+- Relación:  
+  - `talento`: Talento (muchos a 1)  
 
 ---
 
-## Instalar los paquetes necesarios
+## Autenticación
+
+El proyecto incluye autenticación básica:
+
+1. **Registro**: El usuario se registra con email, nombre, apellido y contraseña.  
+2. **Login**: Se obtiene un token JWT que se envía en el header `Authorization: Bearer <token>` para acceder a rutas protegidas.  
+
+---
+
+## Rutas API
+
+### Talentos
+
+- `GET /api/talents` → Listar todos los talentos  
+- `GET /api/talents/[id]` → Obtener talento por ID  
+- `POST /api/talents` → Crear nuevo talento  
+- `PUT /api/talents/[id]` → Actualizar talento  
+- `DELETE /api/talents/[id]` → Eliminar talento  
+
+### Referentes Técnicos
+
+- `GET /api/referentes` → Listar todos los referentes  
+- `POST /api/referentes` → Crear referente  
+- `GET /api/referentes/[id]` → Obtener referente por ID  
+- `PUT /api/referentes/[id]` → Actualizar referente  
+- `DELETE /api/referentes/[id]` → Eliminar referente  
+
+### Interacciones
+
+- `GET /api/interacciones` → Listar interacciones  
+- `POST /api/interacciones` → Crear interacción  
+- `PUT /api/interacciones/[id]` → Actualizar interacción  
+- `DELETE /api/interacciones/[id]` → Eliminar interacción  
+
+### Usuarios
+
+- `GET /api/users` → Listar todos los usuarios  
+- `GET /api/users/[id]` → Obtener usuario por ID  
+- `POST /api/users` → Crear usuario (requiere token admin)  
+- `PUT /api/users/[id]` → Actualizar usuario (requiere token admin)  
+- `DELETE /api/users/[id]` → Eliminar usuario (requiere token admin)  
+
+### Autenticación
+
+- `POST /api/auth/register` → Registro de usuario  
+  - Body: `{ email, firstName, lastName, password }`  
+  - Retorna token JWT y datos del usuario (sin password)  
+
+- `POST /api/auth/login` → Login de usuario  
+  - Body: `{ email, password }`  
+  - Retorna token JWT en caso de credenciales correctas  
+
+> El token JWT obtenido al logearse se debe enviar en el header `Authorization: Bearer <token>` para acceder a rutas protegidas.
+
+---
+
+## Frontend
+
+- UI construida con **shadcn/ui**: tablas, formularios, modales, toasts.  
+- Funcionalidades: listar, crear, editar y eliminar talentos.  
+- Paginación y filtrado soportado mediante query params (`?page=2&sort=asc`).  
+- Validaciones en frontend reflejan las del backend con tipado estricto.  
+
+---
+
+## Base de datos y Seed
+
+- Base de datos: **PostgreSQL**  
+- Conexión mediante **Prisma**.  
+- Archivo de seed (`prisma/seed.ts`) inicializa:  
+  - Usuarios  
+  - Talentos  
+  - Referentes técnicos  
+  - Interacciones  
+
+- Prisma maneja transacciones y relaciones para evitar inconsistencias.  
+- Uso de `select` y `include` para consultas eficientes.  
+
+---
+
+## Instalación y ejecución
 
 ```bash
-npm install
-# or
+# Instalar dependencias
 pnpm install
-# or
-yarn install
 
+# Levantar base de datos con Docker Compose
+docker compose up -d
 
-## Instalar los paquetes necesarios: 
+# Generar cliente Prisma
+pnpm prisma generate
 
-```bash
-npm install
-# or
-pnpm install
-# or
-yarn install
-```
+# Ejecutar migraciones
+pnpm prisma db push
 
-## Ejecutar entorno
+# Cargar datos iniciales
+pnpm prisma db seed
 
-Ejecutar el server dev:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
+# Levantar aplicación
 pnpm dev
-# or
-bun dev
-```
 
-Abre [http://localhost:3000] en tu navegador para ver el resultado.
+# Ejecutar tests con coverage
+pnpm run test -- --coverage

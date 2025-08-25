@@ -1,22 +1,70 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum EstadoTalento {
+  ACTIVO
+  INACTIVO
+}
 
-// schema
+enum EstadoInteraccion {
+  INICIADA
+  EN_PROGRESO
+  FINALIZADA
+}
 
+enum Seniority {
+  JUNIOR
+  SEMI_SENIOR
+  SENIOR
+}
 
-// definir schemas de users y posts
-// tener todo tipado (types.ts)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  password  String   // hash
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
+model Talento {
+  id                 Int                  @id @default(autoincrement())
+  nombre_y_apellido  String
+  seniority          Seniority
+  rol                String
+  estado             EstadoTalento        @default(ACTIVO)
+  referenteLiderId   Int?                 
+  referenteMentorId  Int?                 
+  referenteLider     ReferenteTecnico?    @relation("LiderTalentos", fields: [referenteLiderId], references: [id])
+  referenteMentor    ReferenteTecnico?    @relation("MentorTalentos", fields: [referenteMentorId], references: [id])
+  interacciones      Interaccion[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
 
-// post, get, patch/update (typo date)
+model ReferenteTecnico {
+  id             Int       @id @default(autoincrement())
+  nombre_y_apellido String
+  liderTalentos   Talento[] @relation("LiderTalentos")
+  mentorTalentos  Talento[] @relation("MentorTalentos")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Interaccion {
+  id                  Int       @id @default(autoincrement())
+  talentoId           Int
+  tipo_de_interaccion String
+  detalle             String
+  estado              EstadoInteraccion @default(INICIADA)
+  fecha               DateTime
+  fecha_de_modificacion DateTime @updatedAt
+  talento             Talento   @relation(fields: [talentoId], references: [id])
+}
